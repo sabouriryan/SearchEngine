@@ -58,9 +58,14 @@ def read_json(json_obj):
     '''
     tags = soup.find_all(['h1', 'h2', 'h3', 'strong'])
     for tag in tags:
-        token = tag.get_text()
-        token = stemmer.stem(token)
-        frequencies[token] += 0.5
+        text = tag.get_text()
+        tokens = re.findall(r'\w+', text)
+        for token in tokens:
+            stemmed_token = stemmer.stem(token)
+            if stemmed_token in frequencies:
+                frequencies[stemmed_token] += 0.5
+            else:
+                frequencies[stemmed_token] = 1.5
 
     # now that we have our frequencies, we can create our postings
     # we will go through the dict, create postings for each word, and update our
@@ -112,25 +117,34 @@ def list_directories(dir_path):
     # Return the list of directories
     return directories
 
+def save_partial_index(filename, index):
+    with open(filename, 'wb') as f:
+        pickle.dump(index, f)
+
 
 def main():
     global documents
     global token_set
     global inverted_index
     folders = list_directories('DEV')
+    index_number = 1
     for folder in folders:
-        print("going folder by folder")
         cur_folder = read_folder(folder)
         for file in cur_folder:
-            if not documents % 100:
-                print("up by 100")
-                print(len(token_set))
-            documents += 1
-        #print("read through")
+            if not documents % 10000:
+                print("NEW INDEX CREATED")
+                file_path = "partial_index" + str(index_number) + ".pkl"
+                save_partial_index(file_path, inverted_index)
+                index_number += 1
+                inverted_index.clear()
+
+            if not documents % 1000:
+                print("up by 1000")
             read_json(file)
+            documents += 1
+        print("Finished folder")
+        
     print(len(token_set), documents, sys.getsizeof(inverted_index))
-    with open('dictionary.pkl', 'wb') as f:
-        pickle.dump(inverted_index, f)
 
 if __name__ == '__main__':
     main()

@@ -1,48 +1,77 @@
 import pickle
 from nltk.stem import PorterStemmer
 import time
+import os
 
 
 def tokenize(query):
     words = query.split()
+    stemmed_words = []
     stemmer = PorterStemmer()
     for word in words:
         word = word.strip()
-        word = stemmer.stem(word)
-    return words
+        stemmed_word = stemmer.stem(word)
+        stemmed_words.append(stemmed_word)
+    return stemmed_words
 
 def search(query, inverted_index):
     # Tokenize the query
     tokens = tokenize(query)
 
     # Initialize a dictionary to store relevance scores
+    # key is url, value is relevance score
+    # we rank webpages based on relevance score
+    # as of right now, the tf-idf score is the only thing factored in
     relevance_scores = {}
 
     # Retrieve relevant tuples and calculate relevance scores
     for token in tokens:
         if token in inverted_index:
-            tuples = inverted_index[token]
-            for tuple in tuples:
-                url = tuple[1]
-                tf_idf = tuple[2]
+            posts = inverted_index[token]
+            for post in posts:
+                url = post[1]
+                tf_idf = post[2]
                 # Assign relevance score based on tf-idf value (you can adjust the weight factor)
                 relevance_scores[url] = relevance_scores.get(url, 0) + tf_idf * 1.0 # Adjust weight factor as needed
 
     # Rank the tuples based on relevance scores
-    ranked_tuples = sorted(relevance_scores.items(), key=lambda x: x[1], reverse=True)
+    ranked_pages = sorted(relevance_scores.items(), key=lambda x: x[1], reverse=True)
 
-    # Return the top-k results
-    top_results = ranked_tuples[:5]
-    return top_results
+    # Return the top 5 results
+    results = ranked_pages[:5]
+    return results
+
+def merge_two_maps(map1, map2):
+    for key, val in map2.items():
+        if key not in map1:
+            map1[key] = val
+        else:
+            # they exist in both, we need to add the list of tuples together
+            map1[key] += map2[key]
+    return map1
+
+def merge_indexes():
+    index_number = 1
+    indexes = []
+    file_path = "partial_index" + str(index_number) + ".pkl"
+    while os.path.exists(file_path):
+        with open(file_path, 'rb') as f:
+            partial_index = pickle.load(f)
+            indexes.append(partial_index)
+        index_number += 1
+        file_path = "partial_index" + str(index_number) + ".pkl"
+    # we have a list of dictionaries and we need to merge all of them
+    full_index = {}
+    for index in indexes:
+        merge_two_maps(full_index, index)
+    
+    return full_index
 
 
 def main():
-    index = {}
-    with open('dictionary.pkl', 'rb') as f:
-        index = pickle.load(f)
-
+    index = merge_indexes()
     while True:
-        query = input("Search: ")
+        query = input("Search: ").lower()
         if query == "ss":
             break
         start = time.time()
