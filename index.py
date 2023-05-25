@@ -20,51 +20,60 @@ def read_json(json_obj):
     global inverted_index
     global documents
     global token_set
-    try:
-        d = open(json_obj, 'r', encoding = 'utf-8-sig')
-        json_dict = json.load(d)
-        # parses, we can get only the text with get_text()
-        soup = BeautifulSoup(json_dict["content"], 'html.parser')
+    d = open(json_obj, 'r', encoding = 'utf-8-sig')
+    json_dict = json.load(d)
+    # parses, we can get only the text with get_text()
+    soup = BeautifulSoup(json_dict["content"], 'html.parser')
 
-        # find all the "strong" words, i.e. words in bold or in h1, h2, h3 tags
-        # but how do we make sure these words arent counted again
-        # think about for next MS, only need term frequency rn
-        #tags = soup.find_all(['h1', 'h2', 'h3', 'strong'])
-        text = soup.get_text()
+    # find all the "strong" words, i.e. words in bold or in h1, h2, h3 tags
+    # but how do we make sure these words arent counted again
+    # think about for next MS, only need term frequency rn
+    #tags = soup.find_all(['h1', 'h2', 'h3', 'strong'])
+    text = soup.get_text()
 
-        # we use regular expressions to extract all alphanumeric sequences
-        tokens = re.findall(r'\w+', text)
+    # we use regular expressions to extract all alphanumeric sequences
+    tokens = re.findall(r'\w+', text)
 
 
-        # once extracted, we use porter stemming to shrink the data set
-        stemmed_tokens = []
-        stemmer = PorterStemmer()
-        for token in tokens:
-            token_set.add(token)
-            stemmed_tokens.append(stemmer.stem(token))
+    # once extracted, we use porter stemming to shrink the data set
+    stemmed_tokens = []
+    stemmer = PorterStemmer()
+    for token in tokens:
+        token_set.add(token)
+        stemmed_tokens.append(stemmer.stem(token))
 
-        #now, we can go through the set and count the frequency of each word
-        frequencies = {}
-        for token in stemmed_tokens:
-            if token not in frequencies:
-                frequencies[token] = 1
-            else:
-                frequencies[token] += 1
+    #now, we can go through the set and count the frequency of each word
+    frequencies = {}
+    for token in stemmed_tokens:
+        if token not in frequencies:
+            frequencies[token] = 1
+        else:
+            frequencies[token] += 1
+    
 
-        # now that we have our frequencies, we can create our postings
-        # we will go through the dict, create postings for each word, and update our
-        # inverted index
-        #print(frequencies)
-        for key, val in frequencies.items():
-            post = Posting(key, json_dict["url"], val)
-            post_tuple = post.convert_to_tuple()
-            if key not in inverted_index:
-                inverted_index[key] = [post_tuple]
-            else:
-                inverted_index[key].append(post_tuple)
-    except:
-        d.close()
-        return
+    '''
+    This is how we are dealing with strong words. Read through all words 
+    ignoring the tags first, then go back and read all tagd and add 0.5 to their
+    frequency
+    '''
+    tags = soup.find_all(['h1', 'h2', 'h3', 'strong'])
+    for tag in tags:
+        token = tag.get_text()
+        token = stemmer.stem(token)
+        frequencies[token] += 0.5
+
+    # now that we have our frequencies, we can create our postings
+    # we will go through the dict, create postings for each word, and update our
+    # inverted index
+    #print(frequencies)
+    for key, val in frequencies.items():
+        post = Posting(key, json_dict["url"], val)
+        post_tuple = post.convert_to_tuple()
+        if key not in inverted_index:
+            inverted_index[key] = [post_tuple]
+        else:
+            inverted_index[key].append(post_tuple)
+    
     d.close()
 
     # thats all we need per json file
