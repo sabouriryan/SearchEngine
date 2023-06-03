@@ -2,6 +2,7 @@ import pickle
 from nltk.stem import PorterStemmer
 import time
 import os
+import math
 
 
 def tokenize(query):
@@ -26,14 +27,16 @@ def search(query, inverted_index):
 
     # Retrieve relevant tuples and calculate relevance scores
     for token in tokens:
+        if len(token) <= 2:
+            continue
         if token in inverted_index:
             posts = inverted_index[token]
             for post in posts:
                 url = post[1]
-                tf_idf = post[2]
-                # Assign relevance score based on tf-idf value (you can adjust the weight factor)
-                relevance_scores[url] = relevance_scores.get(url, 0) + tf_idf * 1.0 # Adjust weight factor as needed
-
+                tf = post[2]
+                idf = math.log(55387 / len(posts))
+                relevance_scores[url] = relevance_scores.get(url, 0) + (tf * idf) # Adjust weight factor as needed
+                #relevance_scores[url] = relevance_scores.get(url, 0) + (tf)
     # Rank the tuples based on relevance scores
     ranked_pages = sorted(relevance_scores.items(), key=lambda x: x[1], reverse=True)
 

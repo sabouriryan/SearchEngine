@@ -1,0 +1,24 @@
+machine learning
+
+master of software engineering
+
+it a they but it (took longer than it should)
+
+cristina lopes
+
+it a (way longer that it should)
+
+alex thornton
+
+raymond klefstad
+
+a a a a (way longer than it should)
+
+
+
+
+
+The queries that took too long became more efficient when I added an if statement that
+checks whether or not a given word is bigger than two characters. If they are 2
+characters or smaller, we consider the word irrelevant and skip it.
+
